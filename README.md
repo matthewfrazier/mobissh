@@ -8,7 +8,7 @@ A mobile-first SSH PWA (Progressive Web App) with a WebSocket bridge. Install to
 
 ## Why this exists
 
-Most mobile SSH clients fail the same way: they treat the terminal as a text viewer with a keyboard bolted on. That works for quick `ls` or reading a log file. It breaks down the moment you open `vim`, `htop`, `tmux`, or Claude Code.
+Most mobile SSH clients fail the same way: they treat the terminal as a text viewer with a keyboard bolted on. That works for quick `ls` or reading a log file. It breaks down the moment you open `vim`, `htop`, `tmux`, or agentic coding tools like OpenCode, Gemini CLI, Codex, and Claude Code.
 
 ### The specific problems with existing mobile SSH apps
 
@@ -16,11 +16,9 @@ Most mobile SSH clients fail the same way: they treat the terminal as a text vie
 
 Android and iOS soft keyboards were designed for messaging apps. When you type in a messaging app, autocorrect is your friend. When you type `ggVGy` in a vim window, autocorrect is catastrophic.
 
-**Existing clients solve the key-sequence problem but break IME input.** Apps like JuiceSSH or Termius disable autocorrect globally, which means you lose swipe-to-type, voice dictation, and predictive text — the features that make typing long text on a phone bearable. Writing a commit message or a comment in an SSH session becomes hunt-and-peck.
+**Existing clients solve the key-sequence problem but break IME input.** Apps like JuiceSSH, ConnectBot or Termius disable autocorrect globally, which means you lose swipe-to-type, voice dictation, and predictive text — the features that make typing long text on a phone bearable. Writing a commit message or a comment in an SSH session becomes hunt-and-peck.
 
-**No existing client exposes a configurable special-key bar.** Arrow keys, Escape, Tab, Ctrl — these are essential for interactive TUIs and barely reachable on a phone keyboard. Most clients hide them in an overflow menu or require two-finger gestures that conflict with terminal mouse reporting.
-
-**Notch, safe area, and keyboard-resize handling is inconsistent.** Native apps sometimes get this right. Web-based clients almost never do.
+**A configurable special-key bar.** Arrow keys, Escape, Tab, Ctrl — these are essential for interactive TUIs and barely reachable on a phone keyboard. Most clients hide them in an overflow menu or require two-finger gestures that conflict with terminal mouse reporting. (Remote Desktop Manager offers similar functionality but has the same input limitations.)
 
 ### What MobiSSH does differently
 

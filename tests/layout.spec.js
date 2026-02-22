@@ -214,11 +214,11 @@ test.describe('Settings panel', () => {
   });
 
   test('saving a custom WS URL persists to localStorage', async ({ page }) => {
-    await page.locator('#wsUrl').fill('ws://10.0.0.5:8080');
+    await page.locator('#wsUrl').fill('wss://10.0.0.5:8080');
     await page.locator('#saveSettingsBtn').click();
 
     const saved = await page.evaluate(() => localStorage.getItem('wsUrl'));
-    expect(saved).toBe('ws://10.0.0.5:8080');
+    expect(saved).toBe('wss://10.0.0.5:8080');
   });
 
   test('font size range exists with correct bounds', async ({ page }) => {

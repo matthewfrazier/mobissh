@@ -160,6 +160,36 @@ document.addEventListener('DOMContentLoaded', () => {
   initVault(); // async, silently unlocks if browser credential available
   initKeyboardAwareness();
 
+  // Event delegation for profile list — replaces inline onclick blocked by CSP
+  const profileList = document.getElementById('profileList');
+  profileList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (btn) {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx);
+      if (btn.dataset.action === 'edit') loadProfileIntoForm(idx);
+      else if (btn.dataset.action === 'delete') deleteProfile(idx);
+      return;
+    }
+    const item = e.target.closest('.profile-item');
+    if (item) loadProfileIntoForm(parseInt(item.dataset.idx));
+  });
+  profileList.addEventListener('touchstart', (e) => {
+    e.target.closest('.profile-item')?.classList.add('tapped');
+  }, { passive: true });
+  profileList.addEventListener('touchend', (e) => {
+    e.target.closest('.profile-item')?.classList.remove('tapped');
+  }, { passive: true });
+
+  // Event delegation for key list — replaces inline onclick blocked by CSP
+  document.getElementById('keyList').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.idx);
+    if (btn.dataset.action === 'use') useKey(idx);
+    else if (btn.dataset.action === 'delete') deleteKey(idx);
+  });
+
   // Cold start UX (#36): if profiles exist, land on Connect so user can tap to connect
   if (getProfiles().length > 0) {
     document.querySelector('[data-panel="connect"]').click();
@@ -1368,12 +1398,12 @@ function loadProfiles() {
   }
 
   list.innerHTML = profiles.map((p, i) => `
-    <div class="profile-item" onclick="loadProfileIntoForm(${i})" ontouchstart="this.classList.add('tapped')" ontouchend="this.classList.remove('tapped')">
+    <div class="profile-item" data-idx="${i}">
       <span class="profile-name">${escHtml(p.name)}${p.hasVaultCreds ? ' <span class="vault-badge">saved</span>' : ''}</span>
       <span class="profile-host">${escHtml(p.username)}@${escHtml(p.host)}:${p.port || 22}</span>
       <div class="item-actions">
-        <button class="item-btn" onclick="loadProfileIntoForm(${i})">✎ Edit</button>
-        <button class="item-btn danger" onclick="event.stopPropagation(); deleteProfile(${i})">Delete</button>
+        <button class="item-btn" data-action="edit" data-idx="${i}">✎ Edit</button>
+        <button class="item-btn danger" data-action="delete" data-idx="${i}">Delete</button>
       </div>
     </div>
   `).join('');
@@ -1443,8 +1473,8 @@ function loadKeys() {
       <span class="key-name">${escHtml(k.name)}</span>
       <span class="key-created">Added ${new Date(k.created).toLocaleDateString()}</span>
       <div class="item-actions">
-        <button class="item-btn" onclick="useKey(${i})">Use in form</button>
-        <button class="item-btn danger" onclick="deleteKey(${i})">Delete</button>
+        <button class="item-btn" data-action="use" data-idx="${i}">Use in form</button>
+        <button class="item-btn danger" data-action="delete" data-idx="${i}">Delete</button>
       </div>
     </div>
   `).join('');

@@ -223,6 +223,7 @@
       <input type="url" id="wsUrl" placeholder="ws://localhost:8080" inputmode="url" />
       <p class="hint">The URL of your ssh-bridge server. Use <code>wss://</code> for secure connections.
          When running in a Codespace, set this to the forwarded port URL for port 8080 with <code>wss://</code>.</p>
+      <p id="wsWarnInsecure" class="hint hidden" style="color: var(--danger);">⚠ ws:// is unencrypted. Use wss:// for connections over any untrusted network.</p>
       <button id="saveSettingsBtn" class="primary-btn">Save</button>
 
       <hr />
@@ -246,6 +247,15 @@
       <hr />
 
       <button id="clearDataBtn" class="danger-btn">Clear all data (keys, profiles, settings)</button>
+
+      <hr />
+
+      <h3 style="color: var(--danger); margin-bottom: 8px;">Danger Zone</h3>
+      <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+        <input type="checkbox" id="allowPrivateHosts" />
+        <span>Allow connections to private/loopback addresses</span>
+      </label>
+      <p class="hint" style="margin-top: 6px;">⚠ Disables SSRF protection. Only enable if you need to SSH to RFC-1918 addresses (10.x, 172.16–31.x, 192.168.x) or localhost, and understand the risk.</p>
     </div>
   </div>
 

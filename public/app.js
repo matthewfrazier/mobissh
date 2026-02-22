@@ -625,6 +625,7 @@ function _openWebSocket() {
       authMsg.password = currentProfile.password || '';
     }
     if (currentProfile.initialCommand) authMsg.initialCommand = currentProfile.initialCommand;
+    if (localStorage.getItem('allowPrivateHosts') === 'true') authMsg.allowPrivate = true;
     ws.send(JSON.stringify(authMsg));
     terminal.writeln(ANSI.dim(`SSH → ${currentProfile.username}@${currentProfile.host}:${currentProfile.port || 22}…`));
   };
@@ -1458,6 +1459,12 @@ function initSettingsPanel() {
   const wsInput = document.getElementById('wsUrl');
   wsInput.value = localStorage.getItem('wsUrl') || getDefaultWsUrl();
 
+  // Show ws:// warning on load if the stored URL is insecure
+  const wsWarn = document.getElementById('wsWarnInsecure');
+  if (wsWarn && wsInput.value.startsWith('ws://')) {
+    wsWarn.classList.remove('hidden');
+  }
+
   document.getElementById('saveSettingsBtn').addEventListener('click', () => {
     const url = wsInput.value.trim();
     if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
@@ -1465,8 +1472,26 @@ function initSettingsPanel() {
       return;
     }
     localStorage.setItem('wsUrl', url);
-    toast('Settings saved.');
+    if (url.startsWith('ws://')) {
+      if (wsWarn) wsWarn.classList.remove('hidden');
+      toast('Settings saved — warning: ws:// is unencrypted.');
+    } else {
+      if (wsWarn) wsWarn.classList.add('hidden');
+      toast('Settings saved.');
+    }
   });
+
+  // Danger zone: allow connections to private/loopback addresses
+  const allowPrivateEl = document.getElementById('allowPrivateHosts');
+  if (allowPrivateEl) {
+    allowPrivateEl.checked = localStorage.getItem('allowPrivateHosts') === 'true';
+    allowPrivateEl.addEventListener('change', () => {
+      localStorage.setItem('allowPrivateHosts', allowPrivateEl.checked);
+      toast(allowPrivateEl.checked
+        ? '⚠ Private address connections enabled.'
+        : 'SSRF protection re-enabled.');
+    });
+  }
 
   document.getElementById('fontSize').addEventListener('input', (e) => {
     applyFontSize(parseInt(e.target.value));

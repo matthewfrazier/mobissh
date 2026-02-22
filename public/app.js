@@ -667,6 +667,37 @@ function _openWebSocket() {
         stopAndDownloadRecording(); // auto-save recording on SSH disconnect (#54)
         scheduleReconnect();
         break;
+
+      case 'hostkey': { // SSH host key verification (#5)
+        const hostKey = `${msg.host}:${msg.port}`;
+        const knownHosts = JSON.parse(localStorage.getItem('knownHosts') || '{}');
+        const known = knownHosts[hostKey];
+
+        if (!known) {
+          // First connect — prompt user to accept and store
+          _showHostKeyPrompt(msg, null, (accepted) => {
+            if (accepted) {
+              knownHosts[hostKey] = { fingerprint: msg.fingerprint, keyType: msg.keyType, addedAt: new Date().toISOString() };
+              localStorage.setItem('knownHosts', JSON.stringify(knownHosts));
+            }
+            ws.send(JSON.stringify({ type: 'hostkey_response', accepted }));
+          });
+        } else if (known.fingerprint === msg.fingerprint) {
+          // Fingerprint matches stored value — proceed silently
+          ws.send(JSON.stringify({ type: 'hostkey_response', accepted: true }));
+        } else {
+          // Fingerprint changed — block and warn (possible MITM)
+          _showHostKeyPrompt(msg, known.fingerprint, (accepted) => {
+            if (accepted) {
+              const updated = JSON.parse(localStorage.getItem('knownHosts') || '{}');
+              updated[hostKey] = { fingerprint: msg.fingerprint, keyType: msg.keyType, addedAt: new Date().toISOString() };
+              localStorage.setItem('knownHosts', JSON.stringify(updated));
+            }
+            ws.send(JSON.stringify({ type: 'hostkey_response', accepted }));
+          });
+        }
+        break;
+      }
     }
   };
 
@@ -1519,4 +1550,64 @@ function toast(msg) {
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ─── Host key verification prompt (#5) ───────────────────────────────────────
+// Displays a blocking overlay asking the user to accept or reject the SSH host
+// key fingerprint. On first connect knownFingerprint is null; on mismatch it
+// contains the previously stored fingerprint.
+
+function _showHostKeyPrompt(msg, knownFingerprint, callback) {
+  // Remove stale overlay if present
+  const existing = document.getElementById('hostKeyOverlay');
+  if (existing) existing.remove();
+
+  const isMismatch = knownFingerprint !== null;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'hostKeyOverlay';
+  overlay.className = 'hostkey-overlay';
+  overlay.innerHTML = `
+    <div class="hostkey-dialog">
+      <div class="hostkey-title${isMismatch ? ' hostkey-title-warn' : ''}">
+        ${isMismatch ? '&#9888; HOST KEY MISMATCH' : 'New SSH Host Key'}
+      </div>
+      <div class="hostkey-row">
+        <span class="hostkey-label">Host</span>
+        <code class="hostkey-val">${escHtml(msg.host)}:${msg.port}</code>
+      </div>
+      <div class="hostkey-row">
+        <span class="hostkey-label">Type</span>
+        <code class="hostkey-val">${escHtml(msg.keyType)}</code>
+      </div>
+      ${isMismatch ? `
+      <div class="hostkey-row">
+        <span class="hostkey-label">Stored fingerprint</span>
+        <code class="hostkey-val hostkey-fp-old">${escHtml(knownFingerprint)}</code>
+      </div>
+      <div class="hostkey-row">
+        <span class="hostkey-label">Received fingerprint</span>
+        <code class="hostkey-val">${escHtml(msg.fingerprint)}</code>
+      </div>
+      <div class="hostkey-warn-text">This could indicate a MITM attack. Reject unless you know the key changed.</div>
+      ` : `
+      <div class="hostkey-row">
+        <span class="hostkey-label">Fingerprint</span>
+        <code class="hostkey-val">${escHtml(msg.fingerprint)}</code>
+      </div>
+      <div class="hostkey-info-text">Verify this fingerprint out-of-band before accepting.</div>
+      `}
+      <div class="hostkey-buttons">
+        <button class="hostkey-btn hostkey-reject">Reject</button>
+        <button class="hostkey-btn hostkey-accept">${isMismatch ? 'Accept New Key' : 'Accept &amp; Store'}</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  function dismiss() { overlay.remove(); }
+
+  overlay.querySelector('.hostkey-accept').addEventListener('click', () => { dismiss(); callback(true); });
+  overlay.querySelector('.hostkey-reject').addEventListener('click', () => { dismiss(); callback(false); });
 }

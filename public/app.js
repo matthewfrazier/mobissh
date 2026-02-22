@@ -85,6 +85,11 @@ let imeMode = true;        // true = IME/swipe, false = direct char entry (#2)
 let tabBarVisible = true;  // visible on cold start (#36); auto-hides after first connect
 let hasConnected = false;  // true after first successful SSH session (#36)
 
+// ─── Session recording state (#54) ───────────────────────────────────────────
+let recording = false;          // true while a recording is in progress
+let recordingStartTime = null;  // Date.now() at recording start (ms)
+let recordingEvents = [];       // asciicast v2 output events: [elapsed_s, 'o', data]
+
 // ─── Startup ─────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -581,6 +586,9 @@ function _openWebSocket() {
 
       case 'output':
         terminal.write(msg.data);
+        if (recording) {
+          recordingEvents.push([(Date.now() - recordingStartTime) / 1000, 'o', msg.data]);
+        }
         break;
 
       case 'error':
@@ -591,6 +599,7 @@ function _openWebSocket() {
         sshConnected = false;
         setStatus('disconnected', 'Disconnected');
         terminal.writeln(ANSI.yellow(`Disconnected: ${msg.reason || 'unknown reason'}`));
+        stopAndDownloadRecording(); // auto-save recording on SSH disconnect (#54)
         scheduleReconnect();
         break;
     }
@@ -694,6 +703,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function disconnect() {
+  stopAndDownloadRecording(); // auto-save any active recording (#54)
   cancelReconnect();
   stopKeepAlive();
   releaseWakeLock();
@@ -710,6 +720,64 @@ function disconnect() {
 
   setStatus('disconnected', 'Disconnected');
   terminal.writeln(ANSI.yellow('Disconnected.'));
+}
+
+// ─── Session recording (#54) ──────────────────────────────────────────────────
+// asciicast v2 format: https://github.com/asciinema/asciinema/blob/master/doc/asciicast-v2.md
+// Header line: JSON object with version, width, height, timestamp, title
+// Event lines: JSON array [elapsed_seconds, "o", data]
+
+function startRecording() {
+  if (recording) return;
+  recording = true;
+  recordingStartTime = Date.now();
+  recordingEvents = [];
+  _updateRecordingUI();
+  toast('Recording started');
+}
+
+function stopAndDownloadRecording() {
+  if (!recording) return;
+  recording = false;
+  _downloadCastFile();
+  _updateRecordingUI();
+}
+
+function _downloadCastFile() {
+  const header = JSON.stringify({
+    version: 2,
+    width: terminal ? terminal.cols : 220,
+    height: terminal ? terminal.rows : 50,
+    timestamp: Math.floor(recordingStartTime / 1000),
+    title: currentProfile
+      ? `${currentProfile.username}@${currentProfile.host}:${currentProfile.port || 22}`
+      : 'MobiSSH Session',
+  });
+  const lines = [header, ...recordingEvents.map((e) => JSON.stringify(e))].join('\n');
+  const blob = new Blob([lines + '\n'], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  // Filename: mobissh-YYYY-MM-DDTHH-MM-SS.cast
+  const ts = new Date(recordingStartTime)
+    .toISOString()
+    .replace(/[:.]/g, '-')
+    .slice(0, 19);
+  a.download = `mobissh-${ts}.cast`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  recordingEvents = [];
+  recordingStartTime = null;
+}
+
+function _updateRecordingUI() {
+  const startBtn = document.getElementById('sessionRecordStartBtn');
+  const stopBtn  = document.getElementById('sessionRecordStopBtn');
+  if (!startBtn || !stopBtn) return;
+  startBtn.classList.toggle('hidden', recording);
+  stopBtn.classList.toggle('hidden', !recording);
 }
 
 // ─── Status indicator ─────────────────────────────────────────────────────────
@@ -777,6 +845,16 @@ function initSessionMenu() {
   document.getElementById('sessionClearBtn').addEventListener('click', () => {
     closeMenu();
     terminal.clear();
+  });
+
+  document.getElementById('sessionRecordStartBtn').addEventListener('click', () => {
+    closeMenu();
+    startRecording();
+  });
+
+  document.getElementById('sessionRecordStopBtn').addEventListener('click', () => {
+    closeMenu();
+    stopAndDownloadRecording();
   });
 
   document.getElementById('sessionCtrlCBtn').addEventListener('click', () => {

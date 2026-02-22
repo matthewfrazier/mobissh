@@ -1465,10 +1465,28 @@ function initSettingsPanel() {
     wsWarn.classList.remove('hidden');
   }
 
+  // ── Danger Zone toggles ──────────────────────────────────────────────────
+  // Each toggle persists to localStorage on change. New danger settings can
+  // be added here by following the same pattern.
+  const dangerAllowWsEl = document.getElementById('dangerAllowWs');
+  dangerAllowWsEl.checked = localStorage.getItem('dangerAllowWs') === 'true';
+  dangerAllowWsEl.addEventListener('change', () => {
+    localStorage.setItem('dangerAllowWs', dangerAllowWsEl.checked ? 'true' : 'false');
+  });
+
   document.getElementById('saveSettingsBtn').addEventListener('click', () => {
     const url = wsInput.value.trim();
-    if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
-      toast('URL must start with ws:// or wss://');
+    if (url.startsWith('ws://')) {
+      if (dangerAllowWsEl.checked) {
+        localStorage.setItem('wsUrl', url);
+        toast('Saved — warning: ws:// may be blocked by browsers on HTTPS');
+      } else {
+        toast('ws:// is not allowed — use wss:// (or enable in Danger Zone)');
+      }
+      return;
+    }
+    if (!url.startsWith('wss://')) {
+      toast('URL must start with wss://');
       return;
     }
     localStorage.setItem('wsUrl', url);

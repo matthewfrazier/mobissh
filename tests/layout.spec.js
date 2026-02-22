@@ -235,4 +235,47 @@ test.describe('Settings panel', () => {
       expect.arrayContaining(['dark', 'light', 'solarizedDark', 'solarizedLight', 'highContrast'])
     );
   });
+
+  test('font selector has three font options (#71)', async ({ page }) => {
+    const opts = page.locator('#termFontSelect option');
+    await expect(opts).toHaveCount(3);
+    const values = await opts.evaluateAll((els) => els.map((el) => el.value));
+    expect(values).toEqual(['jetbrains', 'firacode', 'monospace']);
+  });
+});
+
+// ─── Issue #71 regressions ──────────────────────────────────────────────────
+
+test.describe('Issue #71 — no redundant status indicator', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('.xterm-screen', { timeout: 5000 });
+  });
+
+  test('statusIndicator element does not exist in the DOM', async ({ page }) => {
+    const el = page.locator('#statusIndicator');
+    await expect(el).toHaveCount(0);
+  });
+
+  test('statusDot element does not exist in the DOM', async ({ page }) => {
+    const el = page.locator('#statusDot');
+    await expect(el).toHaveCount(0);
+  });
+
+  test('Google Fonts stylesheet is loaded (CSP allows it)', async ({ page }) => {
+    const link = page.locator('link[rel="stylesheet"][href*="fonts.googleapis.com"]');
+    await expect(link).toHaveCount(1);
+  });
+
+  test('no CSP violations for font loading', async ({ page }) => {
+    const violations = [];
+    page.on('console', (msg) => {
+      if (msg.text().includes('Content-Security-Policy') && msg.text().includes('font')) {
+        violations.push(msg.text());
+      }
+    });
+    await page.reload();
+    await page.waitForSelector('.xterm-screen', { timeout: 5000 });
+    expect(violations).toHaveLength(0);
+  });
 });

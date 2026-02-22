@@ -73,8 +73,8 @@ const server = http.createServer((req, res) => {
       'Content-Security-Policy': [
         "default-src 'self'",
         "script-src 'self' https://cdn.jsdelivr.net",
-        "style-src 'self' https://cdn.jsdelivr.net",
-        "font-src 'self' https://cdn.jsdelivr.net",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+        "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com",
         "connect-src 'self' wss: ws:",
         "img-src 'self' data: blob:",
         "worker-src 'self'",

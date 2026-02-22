@@ -389,32 +389,7 @@ html, body {
 
 .key-btn.danger { color: var(--danger); border-color: var(--danger); }
 
-#statusIndicator {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  font-size: 11px;
-  white-space: nowrap;
-  flex: 1;
-  padding: 0 4px;
-}
 
-#statusDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--danger);
-}
-
-.status.connected #statusDot { background: var(--accent); }
-.status.connecting #statusDot { background: #ffaa00; animation: pulse 1s infinite; }
-.status.disconnected #statusDot { background: var(--danger); }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
 
 /* xterm overrides */
 .xterm-viewport::-webkit-scrollbar { width: 4px; }

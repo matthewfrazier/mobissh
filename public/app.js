@@ -206,8 +206,16 @@ function initTerminal() {
   const savedTheme = localStorage.getItem('termTheme') || 'dark';
   activeThemeName = THEMES[savedTheme] ? savedTheme : 'dark';
 
+  const FONT_FAMILIES = {
+    jetbrains: '"JetBrains Mono", monospace',
+    firacode:  '"Fira Code", monospace',
+    monospace: 'monospace',
+  };
+  const savedFont = localStorage.getItem('termFont') || 'jetbrains';
+  const fontFamily = FONT_FAMILIES[savedFont] || FONT_FAMILIES.jetbrains;
+
   terminal = new Terminal({
-    fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
+    fontFamily,
     fontSize,
     theme: THEMES[activeThemeName].theme,
     cursorBlink: true,
@@ -220,6 +228,12 @@ function initTerminal() {
   terminal.loadAddon(fitAddon);
   terminal.open(document.getElementById('terminal'));
   fitAddon.fit();
+
+  // Re-measure character cells after web fonts finish loading (#71)
+  document.fonts.ready.then(() => {
+    terminal.options.fontFamily = fontFamily;
+    fitAddon.fit();
+  });
 
   window.addEventListener('resize', handleResize);
 
@@ -909,10 +923,6 @@ function _updateRecordingUI() {
 // ─── Status indicator ─────────────────────────────────────────────────────────
 
 function setStatus(state, text) {
-  const el = document.getElementById('statusIndicator');
-  el.className = `status ${state}`;
-  document.getElementById('statusText').textContent = text;
-
   // Keep session menu button in sync (#39)
   const btn = document.getElementById('sessionMenuBtn');
   if (btn) {
@@ -1537,6 +1547,12 @@ function initSettingsPanel() {
   themeSelect.value = localStorage.getItem('termTheme') || 'dark';
   themeSelect.addEventListener('change', () => {
     applyTheme(themeSelect.value, { persist: true });
+  });
+
+  const fontSelect = document.getElementById('termFontSelect');
+  fontSelect.value = localStorage.getItem('termFont') || 'jetbrains';
+  fontSelect.addEventListener('change', () => {
+    localStorage.setItem('termFont', fontSelect.value);
   });
 
   document.getElementById('clearDataBtn').addEventListener('click', () => {

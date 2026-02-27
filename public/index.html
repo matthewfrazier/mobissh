@@ -135,6 +135,10 @@
         <span class="tab-icon">⚡</span>
         <span class="tab-label">Connect</span>
       </button>
+      <button class="tab" data-panel="files" aria-label="Files">
+        <span class="tab-icon">📂</span>
+        <span class="tab-label">Files</span>
+      </button>
       <button class="tab" data-panel="keys" aria-label="Keys">
         <span class="tab-icon">🔑</span>
         <span class="tab-label">Keys</span>
@@ -199,6 +203,28 @@
           <button id="keyModeBtn" class="key-btn mode-btn" title="Toggle IME / direct key entry">IME</button>
         </div>
       </div>
+    </div>
+
+    <!-- Files panel (SFTP browser) -->
+    <div id="panel-files" class="panel">
+      <!-- Select mode header — hidden when not in select mode -->
+      <div id="sftp-select-header" class="sftp-select-header hidden" role="toolbar" aria-label="Selection controls"></div>
+
+      <!-- Breadcrumb toolbar -->
+      <div id="sftp-toolbar" class="sftp-toolbar" role="navigation"></div>
+
+      <!-- File list -->
+      <div id="sftp-file-list" class="sftp-file-list" role="table" aria-label="Remote files">
+        <div class="sftp-empty sftp-connecting">
+          Connect via SSH to browse files
+        </div>
+      </div>
+
+      <!-- Transfer progress rows -->
+      <div id="sftp-transfers" class="sftp-transfers" aria-label="File transfers" aria-live="polite"></div>
+
+      <!-- Multi-select floating action bar -->
+      <div id="sftp-action-bar" class="sftp-action-bar sftp-action-bar-hidden" role="toolbar" aria-label="Batch actions"></div>
     </div>
 
     <!-- Connect panel -->

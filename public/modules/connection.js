@@ -18,6 +18,16 @@ export function initConnection({ toast, setStatus, focusIME, applyTabBarVisibili
     _focusIME = focusIME;
     _applyTabBarVisibility = applyTabBarVisibility;
 }
+const _prefixHandlers = new Map();
+export function registerMessageHandler(prefix, handler) {
+    _prefixHandlers.set(prefix, handler);
+}
+/** Send a raw JSON message on the current WebSocket (used by SFTP and other modules). */
+export function sendWsMessage(msg) {
+    if (appState.ws?.readyState === WebSocket.OPEN) {
+        appState.ws.send(JSON.stringify(msg));
+    }
+}
 // ── WebSocket / SSH connection ────────────────────────────────────────────────
 // Max consecutive pre-open WS close events before halting the reconnect loop.
 // A close before onopen fires typically indicates a server-side auth rejection.
@@ -90,6 +100,13 @@ function _openWebSocket() {
         }
         catch {
             return;
+        }
+        // Dispatch to registered prefix handlers (e.g. sftp_*)
+        for (const [prefix, handler] of _prefixHandlers) {
+            if (msg.type.startsWith(prefix)) {
+                handler(msg);
+                return;
+            }
         }
         switch (msg.type) {
             case 'connected':

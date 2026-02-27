@@ -180,3 +180,58 @@ export interface AsciicastHeader {
 }
 
 export type AsciicastEvent = [number, 'o', string];
+
+// ── SFTP file browser ────────────────────────────────────────────────────────
+
+export interface SftpEntry {
+  name: string;
+  type: 'file' | 'dir' | 'symlink';
+  size: number;
+  mtime: number;
+  mode: number;
+}
+
+export interface SftpDirCache {
+  entries: SftpEntry[];
+  fetchedAt: number;
+}
+
+export type SftpTransferStatus = 'active' | 'done' | 'error' | 'paused';
+
+export interface SftpTransfer {
+  id: string;
+  direction: 'download' | 'upload';
+  filename: string;
+  remotePath: string;
+  totalSize: number | null;
+  receivedSize: number;
+  status: SftpTransferStatus;
+  error?: string;
+  // Download: accumulated base64 chunks → assembled into Blob
+  chunks: string[];
+  toClipboard?: boolean;
+  clipboardMime?: string;
+  // Upload: pending server-side rename after upload completes
+  pendingRename?: string;
+  // Current server path (may be renamed after upload)
+  serverPath?: string;
+}
+
+export type SftpMessage =
+  | { type: 'sftp_ready'; homedir: string }
+  | { type: 'sftp_readdir_result'; path: string; entries: SftpEntry[] }
+  | { type: 'sftp_download_start'; transferId: string; size: number | null; filename: string }
+  | { type: 'sftp_download_chunk'; transferId: string; data: string }
+  | { type: 'sftp_download_end'; transferId: string }
+  | { type: 'sftp_download_dir_progress'; transferId: string; filesProcessed: number; totalFiles: number }
+  | { type: 'sftp_upload_progress'; transferId: string; received: number }
+  | { type: 'sftp_upload_done'; transferId: string; remotePath: string }
+  | { type: 'sftp_rm_recursive_result'; transferId: string }
+  | { type: 'sftp_rename_result'; oldPath: string; newPath: string }
+  | { type: 'sftp_error'; op: string; path: string; message: string; transferId?: string };
+
+/** Dependency interface for SFTP modules */
+export interface SftpDeps {
+  toast: (msg: string) => void;
+  onStateChange: () => void;
+}

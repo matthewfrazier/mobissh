@@ -14,6 +14,8 @@ import { initConnection } from './modules/connection.js';
 import { initIME, initIMEInput } from './modules/ime.js';
 import { initUI, toast, setStatus, focusIME, _applyTabBarVisibility, initSessionMenu, initTabBar, initConnectForm, initTerminalActions, initKeyBar, } from './modules/ui.js';
 import { ROOT_CSS, initTerminal, handleResize, initKeyboardAwareness, getKeyboardVisible, applyFontSize, applyTheme, } from './modules/terminal.js';
+import { initSftp } from './modules/sftp.js';
+import { initSftpUI, renderFilesPanel } from './modules/sftp-ui.js';
 // ── Startup ──
 document.addEventListener('DOMContentLoaded', () => void (async () => {
     try {
@@ -30,6 +32,8 @@ document.addEventListener('DOMContentLoaded', () => void (async () => {
         initProfiles({ toast });
         initSettings({ toast, applyFontSize, applyTheme });
         initConnection({ toast, setStatus, focusIME, applyTabBarVisibility: _applyTabBarVisibility });
+        initSftp({ toast, onStateChange: renderFilesPanel });
+        initSftpUI({ toast });
         initSessionMenu();
         initSettingsPanel();
         loadProfiles();

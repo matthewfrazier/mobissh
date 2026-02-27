@@ -23,6 +23,23 @@ export function initConnection({ toast, setStatus, focusIME, applyTabBarVisibili
   _applyTabBarVisibility = applyTabBarVisibility;
 }
 
+// ── Message handler registry ──────────────────────────────────────────────────
+// Allows modules to register handlers for message type prefixes without
+// requiring circular imports. The SFTP module uses this to receive sftp_* msgs.
+type PrefixedMessageHandler = (msg: unknown) => void;
+const _prefixHandlers: Map<string, PrefixedMessageHandler> = new Map();
+
+export function registerMessageHandler(prefix: string, handler: PrefixedMessageHandler): void {
+  _prefixHandlers.set(prefix, handler);
+}
+
+/** Send a raw JSON message on the current WebSocket (used by SFTP and other modules). */
+export function sendWsMessage(msg: object): void {
+  if (appState.ws?.readyState === WebSocket.OPEN) {
+    appState.ws.send(JSON.stringify(msg));
+  }
+}
+
 // ── WebSocket / SSH connection ────────────────────────────────────────────────
 
 // Max consecutive pre-open WS close events before halting the reconnect loop.
@@ -93,8 +110,16 @@ function _openWebSocket(): void {
   };
 
   appState.ws.onmessage = (event: MessageEvent) => {
-    let msg: ServerMessage;
-    try { msg = JSON.parse(event.data as string) as ServerMessage; } catch { return; }
+    let msg: ServerMessage & { type: string };
+    try { msg = JSON.parse(event.data as string) as ServerMessage & { type: string }; } catch { return; }
+
+    // Dispatch to registered prefix handlers (e.g. sftp_*)
+    for (const [prefix, handler] of _prefixHandlers) {
+      if (msg.type.startsWith(prefix)) {
+        handler(msg);
+        return;
+      }
+    }
 
     switch (msg.type) {
       case 'connected':

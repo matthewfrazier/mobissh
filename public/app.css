@@ -1165,3 +1165,561 @@ hr {
   word-break: break-all;
   -webkit-overflow-scrolling: touch;
 }
+
+/* ── SFTP File Browser ────────────────────────────────────────────────────── */
+
+#panel-files {
+  display: none;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+#panel-files.active {
+  display: flex;
+}
+
+/* Select mode header */
+.sftp-select-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.sftp-select-header.hidden { display: none; }
+
+.sftp-select-count {
+  flex: 1;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sftp-select-btn {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sftp-select-exit {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* Toolbar: breadcrumb + action buttons */
+.sftp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+#sftp-breadcrumb {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+#sftp-breadcrumb::-webkit-scrollbar { display: none; }
+
+.sftp-crumb {
+  color: var(--text-dim);
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  padding: 4px 2px;
+  touch-action: manipulation;
+}
+
+.sftp-crumb:active { color: var(--accent); }
+
+.sftp-crumb-active {
+  color: var(--text);
+  cursor: default;
+  font-weight: 600;
+}
+
+.sftp-crumb-sep {
+  color: var(--border);
+  font-size: 13px;
+  padding: 0 2px;
+  user-select: none;
+}
+
+.sftp-toolbar-btns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sftp-toolbar-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+.sftp-toolbar-btn:active { background: var(--bg-input); color: var(--accent); }
+
+@keyframes sftpSpin {
+  to { transform: rotate(360deg); }
+}
+.sftp-loading-spin { animation: sftpSpin 0.8s linear infinite; }
+
+/* File list */
+.sftp-file-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Generic empty/status message */
+.sftp-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.sftp-connecting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Spinner for loading state */
+@keyframes sftpFade {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 1; }
+}
+
+.sftp-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--accent);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: sftpSpin 0.8s linear infinite;
+}
+
+/* Individual row */
+.sftp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  min-height: 48px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s;
+}
+
+.sftp-row:active { background: var(--bg-card); }
+
+.sftp-row.sftp-selected { background: rgba(0, 255, 136, 0.08); }
+
+.sftp-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+
+.sftp-name {
+  flex: 1;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sftp-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex-shrink: 0;
+  min-width: 60px;
+}
+
+.sftp-size {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.sftp-date {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.sftp-chevron {
+  color: var(--text-dim);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* Row action buttons */
+.sftp-row-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sftp-action-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+.sftp-action-btn:active { color: var(--accent); }
+.sftp-action-del:active { color: var(--danger); }
+
+/* Multi-select checkbox */
+.sftp-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sftp-checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.sftp-checked::after {
+  content: '✓';
+  color: var(--bg-deep);
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Skeleton loading rows */
+.sftp-skeleton {
+  pointer-events: none;
+  cursor: default;
+}
+
+@keyframes sftpShimmer {
+  0%   { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.sftp-skeleton-icon,
+.sftp-skeleton-name,
+.sftp-skeleton-meta {
+  display: inline-block;
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-panel) 50%, var(--bg-card) 75%);
+  background-size: 200px 100%;
+  animation: sftpShimmer 1.4s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.sftp-skeleton-icon { width: 24px; height: 20px; flex-shrink: 0; }
+.sftp-skeleton-name { flex: 1; height: 14px; }
+.sftp-skeleton-meta { width: 50px; height: 11px; }
+
+/* Transfer progress area */
+.sftp-transfers {
+  flex-shrink: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+  background: var(--bg-deep);
+}
+
+.sftp-transfer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  min-height: 40px;
+}
+
+.sftp-transfer-dir {
+  color: var(--accent);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.sftp-transfer-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.sftp-transfer-progress {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+.sftp-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-card);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sftp-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.15s ease;
+}
+
+.sftp-progress-pct {
+  color: var(--text-dim);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.sftp-transfer-check { color: var(--accent); font-size: 14px; }
+.sftp-transfer-err   { color: var(--danger); font-size: 10px; }
+.sftp-transfer-done  { opacity: 0.6; }
+.sftp-transfer-error { opacity: 0.8; }
+
+/* Inline rename input */
+.sftp-rename-input {
+  background: var(--bg-input);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  width: 100%;
+  outline: none;
+}
+
+/* Floating multi-select action bar */
+.sftp-action-bar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.sftp-action-bar-hidden {
+  display: none;
+}
+
+.sftp-bar-btn {
+  flex: 1;
+  padding: 10px 8px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sftp-bar-download {
+  background: var(--accent);
+  color: var(--bg-deep);
+}
+
+.sftp-bar-delete {
+  background: var(--bg-card);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.sftp-bar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.sftp-bar-btn:active:not(:disabled) { opacity: 0.8; }
+
+/* Upload action sheet */
+.sftp-upload-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.sftp-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.sftp-sheet-content {
+  position: relative;
+  background: var(--bg-panel);
+  border-radius: 16px 16px 0 0;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+}
+
+.sftp-sheet-title {
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sftp-sheet-btn {
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  padding: 14px 16px;
+  font-size: 16px;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sftp-sheet-btn:first-of-type { border-top: none; }
+.sftp-sheet-btn:active { background: var(--bg-card); }
+.sftp-sheet-cancel { color: var(--danger); }
+
+/* Prompt/confirm dialogs */
+.sftp-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+  padding: 16px;
+}
+
+.sftp-prompt-dialog {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.sftp-prompt-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.sftp-prompt-danger { color: var(--danger); }
+
+.sftp-prompt-body {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+
+.sftp-prompt-input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 16px;
+}
+
+.sftp-prompt-input:focus { border-color: var(--accent); }
+
+.sftp-prompt-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.sftp-prompt-cancel,
+.sftp-prompt-ok {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  border: none;
+}
+
+.sftp-prompt-cancel {
+  background: var(--bg-card);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+.sftp-prompt-ok {
+  background: var(--accent);
+  color: var(--bg-deep);
+}
+
+.sftp-prompt-danger-btn {
+  background: var(--danger);
+  color: #fff;
+}

@@ -15,6 +15,19 @@
  *     { type: 'resize', cols: number, rows: number }
  *     { type: 'disconnect' }
  *     { type: 'hostkey_response', accepted: boolean }
+ *     { type: 'sftp_open' }
+ *     { type: 'sftp_readdir', path: string }
+ *     { type: 'sftp_download', path: string, transferId: string }
+ *     { type: 'sftp_download_dir', path: string, transferId: string }
+ *     { type: 'sftp_download_batch', paths: string[], transferId: string }
+ *     { type: 'sftp_upload_start', remotePath: string, transferId: string, size: number }
+ *     { type: 'sftp_upload_chunk', transferId: string, data: string }  (base64)
+ *     { type: 'sftp_upload_end', transferId: string }
+ *     { type: 'sftp_mkdir', path: string }
+ *     { type: 'sftp_rm', path: string }
+ *     { type: 'sftp_rm_recursive', path: string, transferId: string }
+ *     { type: 'sftp_rename', oldPath: string, newPath: string }
+ *     { type: 'sftp_close' }
  *
  *   Server → Client:
  *     { type: 'connected' }
@@ -22,6 +35,17 @@
  *     { type: 'error', message: string }
  *     { type: 'disconnected', reason: string }
  *     { type: 'hostkey', host, port, keyType, fingerprint }
+ *     { type: 'sftp_ready', homedir: string }
+ *     { type: 'sftp_readdir_result', path: string, entries: SftpEntry[] }
+ *     { type: 'sftp_download_start', transferId: string, size: number|null, filename: string }
+ *     { type: 'sftp_download_chunk', transferId: string, data: string }  (base64)
+ *     { type: 'sftp_download_end', transferId: string }
+ *     { type: 'sftp_download_dir_progress', transferId: string, filesProcessed: number, totalFiles: number }
+ *     { type: 'sftp_upload_progress', transferId: string, received: number }
+ *     { type: 'sftp_upload_done', transferId: string, remotePath: string }
+ *     { type: 'sftp_rm_recursive_result', transferId: string }
+ *     { type: 'sftp_rename_result', oldPath: string, newPath: string }
+ *     { type: 'sftp_error', op: string, path: string, message: string, transferId?: string }
  */
 
 const http = require('http');
@@ -31,6 +55,8 @@ const { createHash, createHmac, randomBytes, timingSafeEqual } = require('crypto
 const { execSync } = require('child_process');
 const WebSocket = require('ws');
 const { Client } = require('ssh2');
+let archiver;
+try { archiver = require('archiver'); } catch (_) { archiver = null; }
 
 const PORT = process.env.PORT || 8081;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -311,6 +337,11 @@ wss.on('connection', (ws, req) => {
   let connecting = false;
   let pendingVerify = null; // hostVerifier callback waiting for client response (#5)
 
+  // ── SFTP state ────────────────────────────────────────────────────────────
+  let sftpChannel = null;
+  const sftpUploads = new Map(); // transferId → { stream, remotePath, received }
+  const sftpDownloads = new Map(); // transferId → { cancelled: bool }
+
   function send(obj) {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(obj));
@@ -319,6 +350,19 @@ wss.on('connection', (ws, req) => {
 
   function cleanup(reason) {
     pendingVerify = null; // discard any pending host-key verification (#5)
+    // Clean up SFTP uploads
+    for (const [, upload] of sftpUploads) {
+      try { upload.stream.destroy(); } catch (_) {}
+    }
+    sftpUploads.clear();
+    // Mark downloads as cancelled
+    for (const [, dl] of sftpDownloads) { dl.cancelled = true; }
+    sftpDownloads.clear();
+    // Close SFTP channel
+    if (sftpChannel) {
+      try { sftpChannel.end(); } catch (_) {}
+      sftpChannel = null;
+    }
     if (sshStream) {
       try { sshStream.close(); } catch (_) {}
       sshStream = null;
@@ -332,6 +376,67 @@ wss.on('connection', (ws, req) => {
       send({ type: 'disconnected', reason });
       console.log(`[ssh-bridge] Session ended (${clientIP}): ${reason}`);
     }
+  }
+
+  // ── SFTP helpers ─────────────────────────────────────────────────────────
+
+  /** Recursively walk a remote directory, returning all file paths. */
+  async function sftpWalkDir(sftp, dirPath, basePath) {
+    const results = [];
+    const entries = await new Promise((resolve, reject) => {
+      sftp.readdir(dirPath, (err, list) => {
+        if (err) reject(err); else resolve(list);
+      });
+    });
+    for (const entry of entries) {
+      const fullPath = dirPath.replace(/\/$/, '') + '/' + entry.filename;
+      if (entry.attrs.isDirectory()) {
+        const sub = await sftpWalkDir(sftp, fullPath, basePath);
+        results.push(...sub);
+      } else {
+        results.push({ fullPath, relPath: fullPath.slice(basePath.length).replace(/^\//, ''), size: entry.attrs.size });
+      }
+    }
+    return results;
+  }
+
+  /** Stream a set of files as a ZIP archive over WebSocket. */
+  async function sftpStreamZip(sftp, files, transferId, zipBaseName) {
+    if (!archiver) {
+      send({ type: 'sftp_error', op: 'download_zip', path: zipBaseName, message: 'archiver module not available — run npm install in server/' });
+      return;
+    }
+    const dlState = { cancelled: false };
+    sftpDownloads.set(transferId, dlState);
+
+    send({ type: 'sftp_download_start', transferId, size: null, filename: zipBaseName + '.zip' });
+
+    const arc = archiver('zip', { zlib: { level: 1 } });
+
+    arc.on('data', (chunk) => {
+      if (!dlState.cancelled && ws.readyState === WebSocket.OPEN) {
+        send({ type: 'sftp_download_chunk', transferId, data: chunk.toString('base64') });
+      }
+    });
+
+    arc.on('end', () => {
+      sftpDownloads.delete(transferId);
+      if (!dlState.cancelled) send({ type: 'sftp_download_end', transferId });
+    });
+
+    arc.on('error', (err) => {
+      sftpDownloads.delete(transferId);
+      send({ type: 'sftp_error', op: 'download_zip', path: zipBaseName, message: err.message, transferId });
+    });
+
+    for (let i = 0; i < files.length; i++) {
+      if (dlState.cancelled) break;
+      const file = files[i];
+      arc.append(sftp.createReadStream(file.fullPath), { name: file.relPath });
+      send({ type: 'sftp_download_dir_progress', transferId, filesProcessed: i + 1, totalFiles: files.length });
+    }
+
+    arc.finalize();
   }
 
   function connect(cfg) {
@@ -472,6 +577,196 @@ wss.on('connection', (ws, req) => {
           // If rejected, ssh2 emits an error event which calls cleanup naturally
         }
         break;
+
+      // ── SFTP handlers ──────────────────────────────────────────────────────
+      case 'sftp_open':
+        if (!sshClient) { send({ type: 'sftp_error', op: 'open', path: '', message: 'No SSH session active — connect first' }); break; }
+        if (sftpChannel) { send({ type: 'sftp_ready', homedir: '' }); break; }
+        sshClient.sftp((err, sftp) => {
+          if (err) { send({ type: 'sftp_error', op: 'open', path: '', message: err.message }); return; }
+          sftpChannel = sftp;
+          sftp.realpath('.', (e, absPath) => {
+            send({ type: 'sftp_ready', homedir: e ? '/' : absPath });
+          });
+          sftp.on('end', () => { sftpChannel = null; });
+          sftp.on('close', () => { sftpChannel = null; });
+          sftp.on('error', () => { sftpChannel = null; });
+        });
+        break;
+
+      case 'sftp_close':
+        if (sftpChannel) { try { sftpChannel.end(); } catch (_) {} sftpChannel = null; }
+        break;
+
+      case 'sftp_readdir':
+        if (!sftpChannel) { send({ type: 'sftp_error', op: 'readdir', path: msg.path || '', message: 'SFTP not open' }); break; }
+        sftpChannel.readdir(msg.path, (err, list) => {
+          if (err) { send({ type: 'sftp_error', op: 'readdir', path: msg.path, message: err.message }); return; }
+          const entries = (list || []).map((e) => ({
+            name: e.filename,
+            type: e.attrs.isDirectory() ? 'dir' : (e.attrs.isSymbolicLink ? 'symlink' : 'file'),
+            size: e.attrs.size || 0,
+            mtime: e.attrs.mtime || 0,
+            mode: e.attrs.mode || 0,
+          }));
+          send({ type: 'sftp_readdir_result', path: msg.path, entries });
+        });
+        break;
+
+      case 'sftp_download': {
+        if (!sftpChannel) { send({ type: 'sftp_error', op: 'download', path: msg.path || '', message: 'SFTP not open', transferId: msg.transferId }); break; }
+        const dlId = msg.transferId || randomBytes(8).toString('hex');
+        const dlState = { cancelled: false };
+        sftpDownloads.set(dlId, dlState);
+        sftpChannel.stat(msg.path, (statErr, attrs) => {
+          const fileSize = statErr ? null : attrs.size;
+          const filename = msg.path.split('/').pop() || 'download';
+          send({ type: 'sftp_download_start', transferId: dlId, size: fileSize, filename });
+          const readStream = sftpChannel.createReadStream(msg.path);
+          readStream.on('data', (chunk) => {
+            if (!dlState.cancelled && ws.readyState === WebSocket.OPEN) {
+              send({ type: 'sftp_download_chunk', transferId: dlId, data: chunk.toString('base64') });
+            }
+          });
+          readStream.on('end', () => {
+            sftpDownloads.delete(dlId);
+            if (!dlState.cancelled) send({ type: 'sftp_download_end', transferId: dlId });
+          });
+          readStream.on('error', (err) => {
+            sftpDownloads.delete(dlId);
+            send({ type: 'sftp_error', op: 'download', path: msg.path, message: err.message, transferId: dlId });
+          });
+        });
+        break;
+      }
+
+      case 'sftp_download_dir': {
+        if (!sftpChannel) { send({ type: 'sftp_error', op: 'download_dir', path: msg.path || '', message: 'SFTP not open', transferId: msg.transferId }); break; }
+        const dirId = msg.transferId || randomBytes(8).toString('hex');
+        const baseName = msg.path.replace(/\/$/, '').split('/').pop() || 'download';
+        const sftp = sftpChannel;
+        sftpWalkDir(sftp, msg.path, msg.path)
+          .then((files) => sftpStreamZip(sftp, files, dirId, baseName))
+          .catch((err) => send({ type: 'sftp_error', op: 'download_dir', path: msg.path, message: err.message, transferId: dirId }));
+        break;
+      }
+
+      case 'sftp_download_batch': {
+        if (!sftpChannel) { send({ type: 'sftp_error', op: 'download_batch', path: '', message: 'SFTP not open', transferId: msg.transferId }); break; }
+        if (!Array.isArray(msg.paths) || msg.paths.length === 0) { send({ type: 'sftp_error', op: 'download_batch', path: '', message: 'No paths provided', transferId: msg.transferId }); break; }
+        const batchId = msg.transferId || randomBytes(8).toString('hex');
+        const sftp = sftpChannel;
+        // Determine common parent for relative paths
+        const parentPath = msg.paths[0].split('/').slice(0, -1).join('/') || '/';
+        const batchBaseName = 'download_' + new Date().toISOString().slice(0, 10);
+        // Collect all files: for each path, if dir walk it, if file add directly
+        (async () => {
+          const allFiles = [];
+          for (const p of msg.paths) {
+            try {
+              const statResult = await new Promise((resolve, reject) => {
+                sftp.stat(p, (e, a) => { if (e) reject(e); else resolve(a); });
+              });
+              if (statResult.isDirectory()) {
+                const sub = await sftpWalkDir(sftp, p, parentPath);
+                allFiles.push(...sub);
+              } else {
+                allFiles.push({ fullPath: p, relPath: p.slice(parentPath.length).replace(/^\//, ''), size: statResult.size });
+              }
+            } catch (err) {
+              console.warn(`[sftp-batch] stat failed for ${p}: ${err.message}`);
+            }
+          }
+          await sftpStreamZip(sftp, allFiles, batchId, batchBaseName);
+        })().catch((err) => send({ type: 'sftp_error', op: 'download_batch', path: '', message: err.message, transferId: batchId }));
+        break;
+      }
+
+      case 'sftp_upload_start': {
+        if (!sftpChannel) { send({ type: 'sftp_error', op: 'upload', path: msg.remotePath || '', message: 'SFTP not open', transferId: msg.transferId }); break; }
+        const upId = msg.transferId || randomBytes(8).toString('hex');
+        const writeStream = sftpChannel.createWriteStream(msg.remotePath);
+        sftpUploads.set(upId, { stream: writeStream, remotePath: msg.remotePath, received: 0 });
+        writeStream.on('error', (err) => {
+          sftpUploads.delete(upId);
+          send({ type: 'sftp_error', op: 'upload', path: msg.remotePath, message: err.message, transferId: upId });
+        });
+        break;
+      }
+
+      case 'sftp_upload_chunk': {
+        const upload = sftpUploads.get(msg.transferId);
+        if (!upload) break;
+        const chunk = Buffer.from(msg.data, 'base64');
+        upload.received += chunk.length;
+        upload.stream.write(chunk);
+        send({ type: 'sftp_upload_progress', transferId: msg.transferId, received: upload.received });
+        break;
+      }
+
+      case 'sftp_upload_end': {
+        const upload = sftpUploads.get(msg.transferId);
+        if (!upload) break;
+        upload.stream.end(() => {
+          sftpUploads.delete(msg.transferId);
+          send({ type: 'sftp_upload_done', transferId: msg.transferId, remotePath: upload.remotePath });
+        });
+        break;
+      }
+
+      case 'sftp_mkdir':
+        if (!sftpChannel) { send({ type: 'sftp_error', op: 'mkdir', path: msg.path || '', message: 'SFTP not open' }); break; }
+        sftpChannel.mkdir(msg.path, (err) => {
+          if (err) send({ type: 'sftp_error', op: 'mkdir', path: msg.path, message: err.message });
+          else send({ type: 'sftp_readdir_result', path: '', entries: [] }); // signal success via reload
+        });
+        break;
+
+      case 'sftp_rm':
+        if (!sftpChannel) { send({ type: 'sftp_error', op: 'rm', path: msg.path || '', message: 'SFTP not open' }); break; }
+        sftpChannel.unlink(msg.path, (err) => {
+          if (err) send({ type: 'sftp_error', op: 'rm', path: msg.path, message: err.message });
+        });
+        break;
+
+      case 'sftp_rm_recursive': {
+        if (!sftpChannel) { send({ type: 'sftp_error', op: 'rm_recursive', path: msg.path || '', message: 'SFTP not open', transferId: msg.transferId }); break; }
+        const sftp = sftpChannel;
+        const rmId = msg.transferId || randomBytes(8).toString('hex');
+        const rmRecursive = async (p) => {
+          const attrs = await new Promise((resolve, reject) => {
+            sftp.stat(p, (e, a) => { if (e) reject(e); else resolve(a); });
+          });
+          if (attrs.isDirectory()) {
+            const entries = await new Promise((resolve, reject) => {
+              sftp.readdir(p, (e, l) => { if (e) reject(e); else resolve(l); });
+            });
+            for (const entry of entries) {
+              await rmRecursive(p.replace(/\/$/, '') + '/' + entry.filename);
+            }
+            await new Promise((resolve, reject) => {
+              sftp.rmdir(p, (e) => { if (e) reject(e); else resolve(); });
+            });
+          } else {
+            await new Promise((resolve, reject) => {
+              sftp.unlink(p, (e) => { if (e) reject(e); else resolve(); });
+            });
+          }
+        };
+        rmRecursive(msg.path)
+          .then(() => send({ type: 'sftp_rm_recursive_result', transferId: rmId }))
+          .catch((err) => send({ type: 'sftp_error', op: 'rm_recursive', path: msg.path, message: err.message, transferId: rmId }));
+        break;
+      }
+
+      case 'sftp_rename':
+        if (!sftpChannel) { send({ type: 'sftp_error', op: 'rename', path: msg.oldPath || '', message: 'SFTP not open' }); break; }
+        sftpChannel.rename(msg.oldPath, msg.newPath, (err) => {
+          if (err) send({ type: 'sftp_error', op: 'rename', path: msg.oldPath, message: err.message });
+          else send({ type: 'sftp_rename_result', oldPath: msg.oldPath, newPath: msg.newPath });
+        });
+        break;
+
       default: send({ type: 'error', message: `Unknown message type: ${msg.type}` });
     }
   });

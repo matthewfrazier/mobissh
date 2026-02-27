@@ -26,6 +26,8 @@ import {
   ROOT_CSS, initTerminal, handleResize, initKeyboardAwareness,
   getKeyboardVisible, applyFontSize, applyTheme,
 } from './modules/terminal.js';
+import { initSftp } from './modules/sftp.js';
+import { initSftpUI, renderFilesPanel } from './modules/sftp-ui.js';
 
 declare global {
   interface Window {
@@ -51,6 +53,8 @@ document.addEventListener('DOMContentLoaded', () => void (async () => {
     initProfiles({ toast });
     initSettings({ toast, applyFontSize, applyTheme });
     initConnection({ toast, setStatus, focusIME, applyTabBarVisibility: _applyTabBarVisibility });
+    initSftp({ toast, onStateChange: renderFilesPanel });
+    initSftpUI({ toast });
     initSessionMenu();
     initSettingsPanel();
     loadProfiles();

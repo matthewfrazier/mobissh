@@ -52,6 +52,7 @@ export function initSessionMenu() {
     const menuBtn = document.getElementById('sessionMenuBtn');
     const menu = document.getElementById('sessionMenu');
     const backdrop = document.getElementById('menuBackdrop');
+    const handle = document.getElementById('key-bar-handle');
     // Sync session menu theme label with the active theme
     const initialTheme = THEMES[appState.activeThemeName];
     const themeBtn = document.getElementById('sessionThemeBtn');
@@ -70,6 +71,31 @@ export function initSessionMenu() {
         backdrop.classList.toggle('hidden', wasHidden);
     });
     function closeMenu() { menu.classList.add('hidden'); backdrop.classList.add('hidden'); }
+    // Swipe up on handle to open session menu; swipe down to close.
+    // This replaces the hamburger ≡ button as the primary gesture surface.
+    let _swipeTouchId = -1;
+    let _swipeStartY = 0;
+    handle.addEventListener('touchstart', (e) => {
+        const t = e.touches[0];
+        if (e.touches.length === 1 && t) {
+            _swipeTouchId = t.identifier;
+            _swipeStartY = t.clientY;
+        }
+    }, { passive: true });
+    handle.addEventListener('touchend', (e) => {
+        const touch = Array.from(e.changedTouches).find((t) => t.identifier === _swipeTouchId);
+        if (!touch)
+            return;
+        _swipeTouchId = -1;
+        const deltaY = _swipeStartY - touch.clientY;
+        if (deltaY > 30 && appState.sshConnected && menu.classList.contains('hidden')) {
+            menu.classList.remove('hidden');
+            backdrop.classList.remove('hidden');
+        }
+        else if (deltaY < -30 && !menu.classList.contains('hidden')) {
+            closeMenu();
+        }
+    }, { passive: true });
     backdrop.addEventListener('click', closeMenu);
     // Font size +/− — menu stays open so user can tap repeatedly (#46)
     document.getElementById('fontDecBtn').addEventListener('click', (e) => {
@@ -124,6 +150,10 @@ export function initSessionMenu() {
     document.getElementById('sessionReconnectBtn').addEventListener('click', () => {
         closeMenu();
         reconnect();
+    });
+    document.getElementById('sessionNavBarBtn').addEventListener('click', () => {
+        closeMenu();
+        toggleTabBar();
     });
     document.getElementById('sessionDisconnectBtn').addEventListener('click', () => {
         closeMenu();
@@ -283,12 +313,16 @@ export function initKeyBar() {
     appState.imeMode = localStorage.getItem('imeMode') !== 'direct';
     _applyKeyBarVisibility();
     _applyImeModeUI();
+    _applyKeyControlsDock();
     document.getElementById('handleChevron').addEventListener('click', toggleKeyBar);
-    document.getElementById('tabBarToggleBtn').addEventListener('click', toggleTabBar);
     document.getElementById('keyModeBtn').addEventListener('click', () => {
         toggleImeMode();
         focusIME();
     });
+}
+function _applyKeyControlsDock() {
+    const dock = localStorage.getItem('keyControlsDock') ?? 'right';
+    document.documentElement.classList.toggle('key-dock-left', dock === 'left');
 }
 function toggleKeyBar() {
     appState.keyBarVisible = !appState.keyBarVisible;

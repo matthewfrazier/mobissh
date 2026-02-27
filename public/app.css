@@ -11,6 +11,7 @@
   --text: #e0e0e0;
   --text-dim: #888;
   --border: #2a2a4a;
+  --compose: #7c6ff7; /* soft purple — marks the compose/mode toggle as a system-function key */
   --tab-height: 56px;
   --keybar-height: 34px;
   --keybar-handle-height: 16px;
@@ -377,19 +378,21 @@ html, body {
 
 #key-scroll::-webkit-scrollbar { display: none; }
 
-/* IME / direct-mode toggle button — right-anchored in key row */
+/* IME / direct-mode toggle button — system-function key, visually separated from action keys */
 .mode-btn {
   font-size: 11px;
   padding: 0 6px;
   height: var(--key-btn-height);
-  color: var(--text-dim);
+  color: var(--compose);
+  border-color: var(--compose);
   flex-shrink: 0;
   margin-left: 4px;
 }
 
-/* IME active = accent colour; off = dim (no label change, always "IME") */
+/* IME active = accent colour to show mode is on; border stays compose-coloured */
 .mode-btn.ime-active {
   color: var(--accent);
+  border-color: var(--compose);
 }
 
 .key-btn {
@@ -1113,6 +1116,42 @@ hr {
 }
 
 .vault-actions .hidden { display: none; }
+
+/* Settings row — toggle item layout (used outside of danger zone) */
+.setting-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.setting-row-info {
+  flex: 1;
+}
+
+.setting-row-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+/* Key controls dock — left/right positioning of compose toggle and keybar toggle.
+   Default (no class): both controls are on the right (DOM order).
+   html.key-dock-left: controls shift to the left side via flex order. */
+
+/* Handle: sessionMenuBtn (flex:1 center), handleChevron (right by default) */
+html.key-dock-left #handleChevron {
+  order: -1; /* float left of session button */
+}
+
+/* Key bar row: key-scroll (flex:1), keyModeBtn (right by default) */
+html.key-dock-left #keyModeBtn {
+  order: -1; /* float left of key-scroll */
+  margin-left: 0;
+  margin-right: 4px;
+}
 
 /* Debug overlay */
 .debug-overlay {

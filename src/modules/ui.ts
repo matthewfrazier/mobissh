@@ -63,6 +63,7 @@ export function initSessionMenu(): void {
   const menuBtn = document.getElementById('sessionMenuBtn')!;
   const menu = document.getElementById('sessionMenu')!;
   const backdrop = document.getElementById('menuBackdrop')!;
+  const handle = document.getElementById('key-bar-handle')!;
 
   // Sync session menu theme label with the active theme
   const initialTheme = THEMES[appState.activeThemeName];
@@ -82,6 +83,32 @@ export function initSessionMenu(): void {
   });
 
   function closeMenu(): void { menu.classList.add('hidden'); backdrop.classList.add('hidden'); }
+
+  // Swipe up on handle to open session menu; swipe down to close.
+  // This replaces the hamburger ≡ button as the primary gesture surface.
+  let _swipeTouchId = -1;
+  let _swipeStartY = 0;
+
+  handle.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    if (e.touches.length === 1 && t) {
+      _swipeTouchId = t.identifier;
+      _swipeStartY = t.clientY;
+    }
+  }, { passive: true });
+
+  handle.addEventListener('touchend', (e) => {
+    const touch = Array.from(e.changedTouches).find((t) => t.identifier === _swipeTouchId);
+    if (!touch) return;
+    _swipeTouchId = -1;
+    const deltaY = _swipeStartY - touch.clientY;
+    if (deltaY > 30 && appState.sshConnected && menu.classList.contains('hidden')) {
+      menu.classList.remove('hidden');
+      backdrop.classList.remove('hidden');
+    } else if (deltaY < -30 && !menu.classList.contains('hidden')) {
+      closeMenu();
+    }
+  }, { passive: true });
 
   backdrop.addEventListener('click', closeMenu);
 
@@ -142,6 +169,11 @@ export function initSessionMenu(): void {
   document.getElementById('sessionReconnectBtn')!.addEventListener('click', () => {
     closeMenu();
     reconnect();
+  });
+
+  document.getElementById('sessionNavBarBtn')!.addEventListener('click', () => {
+    closeMenu();
+    toggleTabBar();
   });
 
   document.getElementById('sessionDisconnectBtn')!.addEventListener('click', () => {
@@ -326,14 +358,19 @@ export function initKeyBar(): void {
 
   _applyKeyBarVisibility();
   _applyImeModeUI();
+  _applyKeyControlsDock();
 
   document.getElementById('handleChevron')!.addEventListener('click', toggleKeyBar);
-  document.getElementById('tabBarToggleBtn')!.addEventListener('click', toggleTabBar);
 
   document.getElementById('keyModeBtn')!.addEventListener('click', () => {
     toggleImeMode();
     focusIME();
   });
+}
+
+function _applyKeyControlsDock(): void {
+  const dock = localStorage.getItem('keyControlsDock') ?? 'right';
+  document.documentElement.classList.toggle('key-dock-left', dock === 'left');
 }
 
 function toggleKeyBar(): void {

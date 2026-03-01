@@ -413,7 +413,7 @@ export function initTerminalResizeObserver() {
 export function initKeyBar() {
     appState.keyBarVisible = localStorage.getItem('keyBarVisible') !== 'false';
     appState.imeMode = localStorage.getItem('imeMode') === 'ime';
-    _applyKeyBarVisibility();
+    applyKeyBarTwoRow(localStorage.getItem('keyBarTwoRow') === 'true');
     _applyComposeModeUI();
     _applyKeyControlsDock();
     document.getElementById('handleChevron').addEventListener('click', toggleKeyBar);
@@ -434,6 +434,11 @@ function _applyKeyBarVisibility() {
     if (chevron)
         chevron.textContent = appState.keyBarVisible ? '▾' : '▴';
     document.documentElement.style.setProperty('--keybar-height', appState.keyBarVisible ? _ROOT_CSS.keybarHeight : '0px');
+}
+export function applyKeyBarTwoRow(twoRow) {
+    document.getElementById('key-bar')?.classList.toggle('key-bar-two-row', twoRow);
+    _ROOT_CSS.keybarHeight = twoRow ? '68px' : '34px';
+    _applyKeyBarVisibility();
 }
 function _applyKeyControlsDock() {
     const dock = localStorage.getItem('keyControlsDock') ?? 'right';

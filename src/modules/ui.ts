@@ -476,7 +476,7 @@ export function initKeyBar(): void {
   appState.keyBarVisible = localStorage.getItem('keyBarVisible') !== 'false';
   appState.imeMode = localStorage.getItem('imeMode') === 'ime';
 
-  _applyKeyBarVisibility();
+  applyKeyBarTwoRow(localStorage.getItem('keyBarTwoRow') === 'true');
   _applyComposeModeUI();
   _applyKeyControlsDock();
 
@@ -503,6 +503,12 @@ function _applyKeyBarVisibility(): void {
     '--keybar-height',
     appState.keyBarVisible ? _ROOT_CSS.keybarHeight : '0px'
   );
+}
+
+export function applyKeyBarTwoRow(twoRow: boolean): void {
+  document.getElementById('key-bar')?.classList.toggle('key-bar-two-row', twoRow);
+  _ROOT_CSS.keybarHeight = twoRow ? '68px' : '34px';
+  _applyKeyBarVisibility();
 }
 
 function _applyKeyControlsDock(): void {

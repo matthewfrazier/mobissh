@@ -192,23 +192,29 @@
         </div>
       </div>
       <div id="key-bar">
-        <!-- Single row: scrollable special keys + right-anchored compose toggle -->
+        <!-- Scrollable special keys + right-anchored compose toggle.
+             Two .key-row groups collapse to display:contents in single-row mode,
+             and become flex rows when #key-bar has .key-bar-two-row class. -->
         <div id="key-keys-row">
           <div id="key-scroll">
-            <button id="keyEsc"   class="key-btn" title="Escape">Esc</button>
-            <button id="keyCtrl"  class="key-btn modifier" title="Ctrl modifier">Ctl</button>
-            <button id="keyTab"   class="key-btn" title="Tab">↹</button>
-            <button id="keySlash" class="key-btn" title="/">/</button>
-            <button id="keyPipe"  class="key-btn" title="|">|</button>
-            <button id="keyDash"  class="key-btn" title="-">-</button>
-            <button id="keyUp"    class="key-btn" title="Up">▲</button>
-            <button id="keyDown"  class="key-btn" title="Down">▼</button>
-            <button id="keyLeft"  class="key-btn" title="Left">◀</button>
-            <button id="keyRight" class="key-btn" title="Right">▶</button>
-            <button id="keyHome"  class="key-btn" title="Home">Home</button>
-            <button id="keyEnd"   class="key-btn" title="End">End</button>
-            <button id="keyPgUp"  class="key-btn" title="Page Up">PgUp</button>
-            <button id="keyPgDn"  class="key-btn" title="Page Down">PgDn</button>
+            <div id="key-row-nav" class="key-row">
+              <button id="keyEsc"   class="key-btn" title="Escape">Esc</button>
+              <button id="keyTab"   class="key-btn" title="Tab">↹</button>
+              <button id="keyUp"    class="key-btn" title="Up">▲</button>
+              <button id="keyDown"  class="key-btn" title="Down">▼</button>
+              <button id="keyLeft"  class="key-btn" title="Left">◀</button>
+              <button id="keyRight" class="key-btn" title="Right">▶</button>
+              <button id="keyHome"  class="key-btn" title="Home">Home</button>
+              <button id="keyEnd"   class="key-btn" title="End">End</button>
+            </div>
+            <div id="key-row-edit" class="key-row">
+              <button id="keyCtrl"  class="key-btn modifier" title="Ctrl modifier">Ctl</button>
+              <button id="keySlash" class="key-btn" title="/">/</button>
+              <button id="keyPipe"  class="key-btn" title="|">|</button>
+              <button id="keyDash"  class="key-btn" title="-">-</button>
+              <button id="keyPgUp"  class="key-btn" title="Page Up">PgUp</button>
+              <button id="keyPgDn"  class="key-btn" title="Page Down">PgDn</button>
+            </div>
           </div>
           <button id="composeModeBtn" class="key-btn mode-btn" title="Compose mode: swipe typing, voice, autocorrect"><svg viewBox="0 0 12 20" width="9" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 1.5l2 2L4 10l-2.5.5.5-2.5Z"/><line x1="1" y1="14" x2="11" y2="14"/><line x1="1" y1="18" x2="11" y2="18"/></svg></button>
         </div>
@@ -357,6 +363,17 @@
         </div>
         <label class="toggle" aria-label="Dock key controls on left side">
           <input type="checkbox" id="keyControlsDockLeft" />
+          <span class="toggle-slider toggle-slider-accent"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-row-info">
+          <span class="setting-row-label">Two-row key bar</span>
+          <p class="hint">Show all keys in two visible rows without horizontal scrolling.</p>
+        </div>
+        <label class="toggle" aria-label="Enable two-row key bar layout">
+          <input type="checkbox" id="keyBarTwoRow" />
           <span class="toggle-slider toggle-slider-accent"></span>
         </label>
       </div>

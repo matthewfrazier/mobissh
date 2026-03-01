@@ -8,6 +8,7 @@
 import type { SettingsDeps } from './types.js';
 import { getDefaultWsUrl } from './constants.js';
 import { loadProfiles, loadKeys } from './profiles.js';
+import { applyKeyBarTwoRow } from './ui.js';
 
 let _toast = (_msg: string): void => {};
 let _applyFontSize = (_size: number): void => {};
@@ -86,6 +87,16 @@ export function initSettingsPanel(): void {
       const dock = dockEl.checked ? 'left' : 'right';
       localStorage.setItem('keyControlsDock', dock);
       document.documentElement.classList.toggle('key-dock-left', dock === 'left');
+    });
+  }
+
+  const keyBarTwoRowEl = document.getElementById('keyBarTwoRow') as HTMLInputElement | null;
+  if (keyBarTwoRowEl) {
+    keyBarTwoRowEl.checked = localStorage.getItem('keyBarTwoRow') === 'true';
+    keyBarTwoRowEl.addEventListener('change', () => {
+      const twoRow = keyBarTwoRowEl.checked;
+      localStorage.setItem('keyBarTwoRow', twoRow ? 'true' : 'false');
+      applyKeyBarTwoRow(twoRow);
     });
   }
 

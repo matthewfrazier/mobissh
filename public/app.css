@@ -457,6 +457,31 @@ html, body {
 
 .key-btn.danger { color: var(--danger); border-color: var(--danger); }
 
+/* Key-row wrappers — default (single row): collapse into #key-scroll flex context */
+.key-row {
+  display: contents;
+}
+
+/* Two-row key bar layout — activated by .key-bar-two-row on #key-bar */
+#key-bar.key-bar-two-row #key-scroll {
+  flex-direction: column;
+  overflow-x: hidden;
+  touch-action: none;
+  gap: 2px;
+}
+
+#key-bar.key-bar-two-row .key-row {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+#key-bar.key-bar-two-row .key-row .key-btn {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+}
+
 
 
 /* xterm overrides */

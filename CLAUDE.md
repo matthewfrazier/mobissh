@@ -80,3 +80,4 @@ All backlog items are filed as issues in this repo. Key priorities:
 - No secrets in code
 - Keep `Cache-Control: no-store` on static responses and SW network-first
 - **Never store sensitive data (passwords, private keys, passphrases) in plaintext** — use the encrypted vault (PasswordCredential + AES-GCM) or don't store at all. If the vault is unavailable, block the feature; do not fall back to plaintext storage with a warning.
+- **Before submitting a PR, run `npx playwright test --config=playwright.config.js` and fix all failures.** The `webServer` config in `playwright.config.js` auto-starts the server. Do not submit the PR until all Playwright tests pass.

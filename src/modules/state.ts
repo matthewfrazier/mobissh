@@ -42,4 +42,7 @@ export const appState: AppState = {
   recording: false,
   recordingStartTime: null,
   recordingEvents: [],
+
+  // PWA install (#103)
+  installPrompt: null,
 };

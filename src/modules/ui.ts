@@ -523,3 +523,33 @@ function _applyComposeModeUI(): void {
   btn.classList.toggle('compose-active', appState.imeMode);
   document.getElementById('key-bar')?.classList.toggle('compose-active', appState.imeMode);
 }
+
+// ── PWA Install button (#103) ────────────────────────────────────────────────
+
+export function initPWAInstall(): void {
+  const btn = document.getElementById('pwaInstallBtn') as HTMLButtonElement | null;
+  if (!btn) return;
+
+  // If already running as installed PWA, leave button hidden
+  if (window.matchMedia('(display-mode: standalone)').matches) return;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    appState.installPrompt = e;
+    btn.classList.remove('hidden');
+  });
+
+  btn.addEventListener('click', () => {
+    if (!appState.installPrompt) return;
+    void appState.installPrompt.prompt();
+    void appState.installPrompt.userChoice.then(() => {
+      appState.installPrompt = null;
+      btn.classList.add('hidden');
+    });
+  });
+
+  window.addEventListener('appinstalled', () => {
+    appState.installPrompt = null;
+    btn.classList.add('hidden');
+  });
+}

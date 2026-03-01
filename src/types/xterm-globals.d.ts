@@ -68,6 +68,18 @@ declare global {
     mediation?: CredentialMediationRequirement;
   }
 
+  // ── BeforeInstallPromptEvent (PWA install, #103) ─────────────────────────
+
+  interface BeforeInstallPromptEvent extends Event {
+    prompt(): Promise<void>;
+    readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  }
+
+  interface WindowEventMap {
+    beforeinstallprompt: BeforeInstallPromptEvent;
+    appinstalled: Event;
+  }
+
   // ── Screen Wake Lock ────────────────────────────────────────────────────
 
   interface WakeLockSentinel extends EventTarget {

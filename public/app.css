@@ -1129,6 +1129,10 @@ hr {
 
 .vault-actions .hidden { display: none; }
 
+/* PWA install button (#103) */
+#pwaInstallBtn.hidden { display: none; }
+@media (display-mode: standalone) { #pwaInstallBtn { display: none; } }
+
 /* Settings row — toggle item layout (used outside danger zone) */
 .setting-row {
   display: flex;

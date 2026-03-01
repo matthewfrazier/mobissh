@@ -35,5 +35,7 @@ export const appState = {
     recording: false,
     recordingStartTime: null,
     recordingEvents: [],
+    // PWA install (#103)
+    installPrompt: null,
 };
 //# sourceMappingURL=state.js.map

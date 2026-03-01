@@ -22,6 +22,7 @@ import {
   _applyTabBarVisibility, initSessionMenu, initTabBar,
   initConnectForm, initTerminalActions, initKeyBar,
   initTerminalResizeObserver, initRouting, navigateToPanel,
+  initPWAInstall,
 } from './modules/ui.js';
 import {
   ROOT_CSS, initTerminal, handleResize, initKeyboardAwareness,
@@ -55,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => void (async () => {
     initConnection({ toast, setStatus, focusIME, applyTabBarVisibility: _applyTabBarVisibility });
     initSessionMenu();
     initSettingsPanel();
+    initPWAInstall();
     loadProfiles();
     loadKeys();
     registerServiceWorker();

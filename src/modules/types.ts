@@ -88,6 +88,9 @@ export interface AppState {
   recording: boolean;
   recordingStartTime: number | null;
   recordingEvents: [number, string, string][];
+
+  // PWA install (#103)
+  installPrompt: BeforeInstallPromptEvent | null;
 }
 
 // ── CSS layout constants ────────────────────────────────────────────────────

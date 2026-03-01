@@ -20,9 +20,10 @@ test.describe('Credential vault (#14)', () => {
   test('saving a profile stores encrypted credentials in sshVault (not plaintext)', async ({ page, mockSshServer }) => {
     await setupConnected(page, mockSshServer);
 
-    // Save a new profile via the connect form
+    // Save a new profile via the connect form (form is collapsed; mock-host profile exists)
     await showTabBar(page);
     await page.locator('[data-panel="connect"]').click();
+    await page.locator('#newConnectionBtn').click();
     await page.locator('#host').fill('vault-test-host');
     await page.locator('#port').fill('22');
     await page.locator('#remote_a').fill('vaultuser');
@@ -57,6 +58,7 @@ test.describe('Credential vault (#14)', () => {
 
     await showTabBar(page);
     await page.locator('[data-panel="connect"]').click();
+    await page.locator('#newConnectionBtn').click();
     await page.locator('#host').fill('flag-test-host');
     await page.locator('#port').fill('22');
     await page.locator('#remote_a').fill('flaguser');
@@ -74,9 +76,10 @@ test.describe('Credential vault (#14)', () => {
   test('vault encrypt-decrypt roundtrip preserves credential data', async ({ page, mockSshServer }) => {
     await setupConnected(page, mockSshServer);
 
-    // Save a profile with credentials
+    // Save a profile with credentials (form is collapsed; mock-host profile exists)
     await showTabBar(page);
     await page.locator('[data-panel="connect"]').click();
+    await page.locator('#newConnectionBtn').click();
     await page.locator('#host').fill('roundtrip-host');
     await page.locator('#port').fill('22');
     await page.locator('#remote_a').fill('rounduser');
@@ -100,9 +103,10 @@ test.describe('Credential vault (#14)', () => {
   test('deleting a profile removes its vault entry', async ({ page, mockSshServer }) => {
     await setupConnected(page, mockSshServer);
 
-    // Save a profile
+    // Save a profile (form is collapsed; mock-host profile exists)
     await showTabBar(page);
     await page.locator('[data-panel="connect"]').click();
+    await page.locator('#newConnectionBtn').click();
     await page.locator('#host').fill('delete-test-host');
     await page.locator('#port').fill('22');
     await page.locator('#remote_a').fill('deleteuser');

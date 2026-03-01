@@ -620,6 +620,51 @@ hr {
   margin: 16px 0;
 }
 
+/* Connect panel — profiles-first layout */
+
+/* Form hidden when collapsed (profiles are the primary view) */
+#connectForm.connect-form-collapsed {
+  display: none;
+}
+
+/* "New connection" button — hidden when panel has no profiles */
+#panel-connect.no-profiles #newConnectionBtn {
+  display: none;
+}
+
+.connect-new-btn {
+  margin-top: 8px;
+}
+
+/* Advanced section toggle — styled summary element */
+#connectAdvanced {
+  margin-top: 8px;
+}
+
+#connectAdvanced summary.connect-advanced-toggle {
+  list-style: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 8px 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#connectAdvanced summary.connect-advanced-toggle::after {
+  content: ' ▸';
+}
+
+#connectAdvanced[open] summary.connect-advanced-toggle::after {
+  content: ' ▾';
+}
+
+#connectAdvanced summary.connect-advanced-toggle::-webkit-details-marker {
+  display: none;
+}
+
 /* Profile and key list items */
 .item-list {
   display: flex;

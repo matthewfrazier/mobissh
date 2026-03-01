@@ -50,9 +50,11 @@ test.describe('Profile & key storage (#110 Phase 5)', () => {
     await injectMockVault(page);
     await setupConnected(page, mockSshServer);
 
-    // Save first profile
+    // Save first profile (form is collapsed because mock-host profile exists)
     await showTabBar(page);
     await page.locator('[data-panel="connect"]').click();
+    await page.locator('#newConnectionBtn').click();
+    await page.evaluate(() => { document.getElementById('connectAdvanced').open = true; });
     await page.locator('#profileName').fill('Original');
     await page.locator('#host').fill('upsert-host');
     await page.locator('#port').fill('22');
@@ -64,6 +66,8 @@ test.describe('Profile & key storage (#110 Phase 5)', () => {
     // Save again with same host+port+username but different name
     await showTabBar(page);
     await page.locator('[data-panel="connect"]').click();
+    await page.locator('#newConnectionBtn').click();
+    await page.evaluate(() => { document.getElementById('connectAdvanced').open = true; });
     await page.locator('#profileName').fill('Updated');
     await page.locator('#host').fill('upsert-host');
     await page.locator('#port').fill('22');
@@ -84,9 +88,11 @@ test.describe('Profile & key storage (#110 Phase 5)', () => {
     await injectMockVault(page);
     await setupConnected(page, mockSshServer);
 
-    // Save a profile with XSS payload in the name
+    // Save a profile with XSS payload in the name (form is collapsed; mock-host profile exists)
     await showTabBar(page);
     await page.locator('[data-panel="connect"]').click();
+    await page.locator('#newConnectionBtn').click();
+    await page.evaluate(() => { document.getElementById('connectAdvanced').open = true; });
     await page.locator('#profileName').fill('<img src=x onerror=alert(1)>');
     await page.locator('#host').fill('xss-host');
     await page.locator('#port').fill('22');
@@ -112,9 +118,11 @@ test.describe('Profile & key storage (#110 Phase 5)', () => {
     await injectMockVault(page);
     await setupConnected(page, mockSshServer);
 
-    // Save a profile with all fields
+    // Save a profile with all fields (form is collapsed; mock-host profile exists)
     await showTabBar(page);
     await page.locator('[data-panel="connect"]').click();
+    await page.locator('#newConnectionBtn').click();
+    await page.evaluate(() => { document.getElementById('connectAdvanced').open = true; });
     await page.locator('#profileName').fill('LoadTest');
     await page.locator('#host').fill('load-host');
     await page.locator('#port').fill('2222');
@@ -123,9 +131,11 @@ test.describe('Profile & key storage (#110 Phase 5)', () => {
     await page.locator('#connectForm button[type="submit"]').click();
     await page.waitForTimeout(500);
 
-    // Clear form fields manually
+    // Clear form fields manually (navigate back to connect — form re-collapses, then expand)
     await showTabBar(page);
     await page.locator('[data-panel="connect"]').click();
+    await page.locator('#newConnectionBtn').click();
+    await page.evaluate(() => { document.getElementById('connectAdvanced').open = true; });
     await page.locator('#profileName').fill('');
     await page.locator('#host').fill('');
     await page.locator('#remote_a').fill('');
@@ -147,9 +157,11 @@ test.describe('Profile & key storage (#110 Phase 5)', () => {
     await injectMockVault(page);
     await setupConnected(page, mockSshServer);
 
-    // Save a profile
+    // Save a profile (form is collapsed; mock-host profile exists)
     await showTabBar(page);
     await page.locator('[data-panel="connect"]').click();
+    await page.locator('#newConnectionBtn').click();
+    await page.evaluate(() => { document.getElementById('connectAdvanced').open = true; });
     await page.locator('#profileName').fill('ToDelete');
     await page.locator('#host').fill('delete-host');
     await page.locator('#port').fill('22');

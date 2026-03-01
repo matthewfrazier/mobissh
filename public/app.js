@@ -12,7 +12,7 @@ import { initProfiles, getProfiles, loadProfiles, loadProfileIntoForm, deletePro
 import { initSettings, initSettingsPanel, registerServiceWorker } from './modules/settings.js';
 import { initConnection } from './modules/connection.js';
 import { initIME, initIMEInput } from './modules/ime.js';
-import { initUI, toast, setStatus, focusIME, _applyTabBarVisibility, initSessionMenu, initTabBar, initConnectForm, initTerminalActions, initKeyBar, initTerminalResizeObserver, initRouting, navigateToPanel, } from './modules/ui.js';
+import { initUI, toast, setStatus, focusIME, _applyTabBarVisibility, initSessionMenu, initTabBar, initConnectForm, initTerminalActions, initKeyBar, initTerminalResizeObserver, initRouting, navigateToPanel, showConnectForm, } from './modules/ui.js';
 import { ROOT_CSS, initTerminal, handleResize, initKeyboardAwareness, getKeyboardVisible, applyFontSize, applyTheme, } from './modules/terminal.js';
 // ── Startup ──
 document.addEventListener('DOMContentLoaded', () => void (async () => {
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => void (async () => {
         initKeyBar();
         initTerminalResizeObserver();
         initRecording({ toast });
-        initProfiles({ toast, navigateToConnect: () => { navigateToPanel('connect'); } });
+        initProfiles({ toast, navigateToConnect: () => { navigateToPanel('connect'); showConnectForm(true); } });
         initSettings({ toast, applyFontSize, applyTheme });
         initConnection({ toast, setStatus, focusIME, applyTabBarVisibility: _applyTabBarVisibility });
         initSessionMenu();

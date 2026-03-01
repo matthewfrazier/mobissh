@@ -245,6 +245,7 @@ test.describe('Connect form', () => {
       await createVault('test', false);
     });
 
+    await page.evaluate(() => { document.getElementById('connectAdvanced').open = true; });
     await page.locator('#profileName').fill('Test Server');
     await page.locator('#host').fill('192.168.1.100');
     await page.locator('#port').fill('22');

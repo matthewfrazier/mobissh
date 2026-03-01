@@ -8,7 +8,7 @@ import { KEY_REPEAT, THEMES, THEME_ORDER } from './constants.js';
 import { appState } from './state.js';
 import { sendSSHInput, disconnect, reconnect, connect } from './connection.js';
 import { startRecording, stopAndDownloadRecording } from './recording.js';
-import { saveProfile, getKeys } from './profiles.js';
+import { saveProfile, getKeys, getProfiles } from './profiles.js';
 const VALID_PANELS = new Set(['terminal', 'connect', 'keys', 'settings']);
 function _isValidPanel(hash) {
     return VALID_PANELS.has(hash);
@@ -34,6 +34,9 @@ export function navigateToPanel(panel, options) {
     else {
         appState.tabBarVisible = true;
         _applyTabBarVisibility();
+    }
+    if (panel === 'connect') {
+        _updateConnectPanelState();
     }
     if (updateHash) {
         const newHash = `#${panel}`;
@@ -259,10 +262,42 @@ function _initPasswordFieldCloaking(field) {
     field.addEventListener('focus', () => { field.type = 'password'; });
     field.addEventListener('blur', () => { field.type = 'text'; });
 }
+// ── Connect panel state ───────────────────────────────────────────────────────
+/** Sync the connect panel layout: collapse form and show/hide "New connection"
+ *  button based on whether saved profiles exist. */
+function _updateConnectPanelState() {
+    const hasProfiles = getProfiles().length > 0;
+    const panel = document.getElementById('panel-connect');
+    const form = document.getElementById('connectForm');
+    panel?.classList.toggle('no-profiles', !hasProfiles);
+    if (hasProfiles) {
+        form?.classList.add('connect-form-collapsed');
+    }
+    else {
+        form?.classList.remove('connect-form-collapsed');
+    }
+}
+/** Expand the connection form (called when loading a profile or navigating from
+ *  profile list). Pass openAdvanced=true to also open the advanced details section
+ *  (useful when editing an existing profile). */
+export function showConnectForm(openAdvanced = false) {
+    document.getElementById('connectForm')?.classList.remove('connect-form-collapsed');
+    if (openAdvanced) {
+        const advanced = document.getElementById('connectAdvanced');
+        if (advanced)
+            advanced.open = true;
+    }
+}
 // ── Connect form ─────────────────────────────────────────────────────────────
 export function initConnectForm() {
     const form = document.getElementById('connectForm');
     const authType = document.getElementById('authType');
+    // Set initial collapsed state based on whether profiles exist
+    _updateConnectPanelState();
+    // "New connection" button — expands the form
+    document.getElementById('newConnectionBtn')?.addEventListener('click', () => {
+        form.classList.remove('connect-form-collapsed');
+    });
     authType.addEventListener('change', () => {
         const isKey = authType.value === 'key';
         document.getElementById('passwordGroup').style.display = isKey ? 'none' : 'block';

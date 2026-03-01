@@ -219,10 +219,16 @@
     <div id="panel-connect" class="panel">
       <h2>Connect</h2>
 
-      <form id="connectForm" autocomplete="off">
-        <label for="profileName">Profile name</label>
-        <input type="text" id="profileName" placeholder="My Server" />
+      <!-- Primary view: saved profiles -->
+      <div id="profileList" class="item-list">
+        <p class="empty-hint">No saved profiles yet.</p>
+      </div>
 
+      <!-- "New connection" — hidden when no profiles exist -->
+      <button type="button" id="newConnectionBtn" class="secondary-btn connect-new-btn">+ New connection</button>
+
+      <!-- Secondary view: connection form (collapsed when profiles exist) -->
+      <form id="connectForm" autocomplete="off">
         <label for="host">Host</label>
         <input type="text" id="host" placeholder="192.168.1.100" required inputmode="url" />
 
@@ -269,21 +275,24 @@
           <button type="button" id="useStoredKeyBtn" class="secondary-btn">Use stored key…</button>
         </div>
 
-        <label for="initialCommand">Initial command (optional)</label>
-        <input type="text" id="initialCommand"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="none"
-          spellcheck="false" />
-        <p class="hint">Runs automatically after connecting. Leave blank for a normal shell.</p>
+        <!-- Advanced: optional fields hidden by default -->
+        <details id="connectAdvanced">
+          <summary class="connect-advanced-toggle">Show advanced</summary>
+
+          <label for="profileName">Profile name</label>
+          <input type="text" id="profileName" placeholder="My Server" />
+
+          <label for="initialCommand">Initial command (optional)</label>
+          <input type="text" id="initialCommand"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false" />
+          <p class="hint">Runs automatically after connecting. Leave blank for a normal shell.</p>
+        </details>
 
         <button type="submit" class="primary-btn">Connect</button>
       </form>
-
-      <h3>Saved profiles</h3>
-      <div id="profileList" class="item-list">
-        <p class="empty-hint">No saved profiles yet.</p>
-      </div>
     </div>
 
     <!-- Keys panel -->

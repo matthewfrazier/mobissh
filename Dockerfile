@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
@@ -12,9 +12,9 @@ COPY public/ ./public/
 
 # PORT and BASE_PATH can be overridden at runtime via -e flags.
 # BASE_PATH must start with / and have no trailing slash (e.g. /ssh-test).
-ENV PORT=8081 \
+ENV PORT=8080 \
     NODE_ENV=production
 
-EXPOSE 8081
+EXPOSE 8080
 
 CMD ["node", "server/index.js"]
